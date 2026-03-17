@@ -117,10 +117,75 @@ def read_file(path: str) -> str:
     except Exception as e:
         return f"Error reading file {path}: {str(e)}"
 
+def run_python_code(code: str) -> str:
+    """Executes Python code in a sandboxed subprocess and returns stdout/stderr.
+    Use this to test algorithms, verify logic, or demonstrate outputs from user requests.
+    Args:
+        code: The Python code string to execute.
+    """
+    import subprocess, sys
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True, text=True, timeout=10
+        )
+        output = result.stdout or ""
+        errors = result.stderr or ""
+        if errors:
+            return f"OUTPUT:\n{output}\nERRORS:\n{errors}" if output else f"ERROR:\n{errors}"
+        return f"OUTPUT:\n{output}" if output else "(No output produced)"
+    except subprocess.TimeoutExpired:
+        return "ERROR: Execution timed out after 10 seconds."
+    except Exception as e:
+        return f"ERROR running code: {str(e)}"
+
+def list_directory(path: str = ".") -> str:
+    """Lists the file and folder structure of a directory. Use this to understand project layout.
+    Args:
+        path: The directory path to list. Defaults to the current project directory.
+    """
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["find", path, "-not", "-path", "*/\\.*", "-not", "-path", "*/venv/*",
+             "-not", "-path", "*/__pycache__/*", "-not", "-name", "*.pyc"],
+            capture_output=True, text=True, timeout=5
+        )
+        lines = sorted(result.stdout.strip().split("\n"))
+        return "\n".join(lines) if lines else "(empty directory)"
+    except Exception as e:
+        return f"ERROR listing directory: {str(e)}"
+
+def search_context(keyword: str) -> str:
+    """Searches for a keyword across all project context files in project-context/.
+    Use this to retrieve specific known preferences, stack info, or code rules.
+    Args:
+        keyword: The keyword to search for.
+    """
+    results = []
+    if os.path.isdir(CONTEXT_DIR):
+        for filename in sorted(os.listdir(CONTEXT_DIR)):
+            if filename.endswith(".md"):
+                filepath = os.path.join(CONTEXT_DIR, filename)
+                try:
+                    with open(filepath, "r", encoding="utf-8") as f:
+                        lines = f.readlines()
+                    matches = [
+                        f"  Line {i+1}: {line.rstrip()}"
+                        for i, line in enumerate(lines)
+                        if keyword.lower() in line.lower()
+                    ]
+                    if matches:
+                        results.append(f"[{filename}]\n" + "\n".join(matches))
+                except Exception as e:
+                    results.append(f"[{filename}] ERROR: {e}")
+    return "\n\n".join(results) if results else f"No matches found for '{keyword}'."
+
+# Usaremos el modelo gemini-1.5-flash por ser rápido y eficiente
 model = genai.GenerativeModel(
-    'gemini-2.5-flash',
+    'gemini-1.5-flash',
     system_instruction=system_instruction,
-    tools=[create_file, read_file]
+    tools=[create_file, read_file, run_python_code, list_directory, search_context]
 )
 
 # Diccionario para almacenar historiales de chat por sesión o usuario

@@ -15,8 +15,8 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-# Usaremos el modelo gemini-2.5-flash por ser rápido y eficiente
-model = genai.GenerativeModel('gemini-2.5-flash')
+# Usaremos el modelo gemini-1.5-flash por ser rápido y eficiente
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 def agente_basico():
     print("🤖 Hola, soy tu agente de IA impulsado por Google Gemini. Escribe 'salir' para terminar.")

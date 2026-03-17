@@ -1,6 +1,6 @@
 # 🤖 AgenteAI — Asistente de Ingeniería Informática
 
-> **Asistente de Inteligencia Artificial especializado en Ingeniería Informática**, impulsado por **Google Gemini 2.5 Flash**, con interfaz web tipo terminal, streaming en tiempo real, generación de diagramas y editor de código integrado.
+> **Asistente de Inteligencia Artificial especializado en Ingeniería Informática**, impulsado por **Google Gemini 1.5 Flash**, con interfaz web tipo terminal, streaming en tiempo real, generación de diagramas y editor de código integrado.
 
 ---
 
