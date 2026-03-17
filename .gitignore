@@ -1,0 +1,25 @@
+# Entornos virtuales
+venv/
+env/
+.env
+
+# Archivos de la base de datos local
+chat_history.json
+
+# Archivos de caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de sistema operativo (macOS)
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Herramientas y dependencias varias
+.idea/
+.vscode/
+*.swp
+*.bak

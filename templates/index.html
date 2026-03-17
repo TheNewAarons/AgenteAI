@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent // Terminal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Highlight.js for code formatting -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-tertiary: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --border-color: #333333;
+            --accent: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Press Start 2P', monospace;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            font-size: 10px;
+            line-height: 1.8;
+            overflow: hidden;
+        }
+
+        .app-wrapper {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .main-container {
+            flex: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            border-left: 2px solid var(--border-color);
+            border-right: 2px solid var(--border-color);
+            transition: max-width 0.3s ease;
+        }
+
+        .main-container.editor-open {
+            max-width: 50vw;
+            margin: 0;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            border-left: 2px solid var(--border-color);
+            background-color: var(--bg-primary);
+            width: 50vw;
+            height: 100vh;
+        }
+
+        .editor-container.active {
+            display: flex;
+        }
+
+        .editor-header {
+            background-color: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-color);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-header h2 {
+            font-size: 10px;
+            margin: 0;
+            color: var(--accent);
+            letter-spacing: 1px;
+        }
+
+        .editor-actions button {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            padding: 6px 10px;
+            cursor: pointer;
+            margin-left: 5px;
+            transition: all 0.2s;
+        }
+
+        .editor-actions button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .editor-footer {
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: right;
+        }
+
+        .editor-footer button {
+            background-color: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .editor-footer button:hover {
+            background-color: var(--bg-primary);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 9px 14px;
+        }
+
+        /* Ace Editor Height */
+        #codeEditor {
+            flex-grow: 1;
+            height: 100% !important;
+            min-height: 0;
+            width: 100% !important;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-color);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 14px;
+            margin: 0 0 10px 0;
+            letter-spacing: 2px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 8px;
+            color: var(--text-secondary);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0.3;
+            }
+        }
+
+        /* Chat Area */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: var(--bg-primary);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            background-color: var(--bg-secondary);
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .message-avatar {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+        }
+
+        .message-sender {
+            font-size: 8px;
+            color: var(--text-secondary);
+        }
+
+        .message-time {
+            margin-left: auto;
+            font-size: 6px;
+            color: var(--text-secondary);
+        }
+
+        .message-content {
+            font-size: 9px;
+            word-wrap: break-word;
+        }
+
+        /* Markdown Styles within Message Content */
+        .message-content p {
+            margin-bottom: 15px;
+        }
+
+        .message-content pre {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            overflow-x: auto;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .code-action-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            font-size: 8px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-family: 'Press Start 2P', monospace;
+            z-index: 10;
+        }
+
+        .code-action-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .message-content code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--bg-tertiary);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .message-content pre code {
+            padding: 0;
+            background-color: transparent;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .message-content ul,
+        .message-content ol {
+            margin-bottom: 15px;
+            padding-left: 20px;
+        }
+
+        .message-content h1,
+        .message-content h2,
+        .message-content h3 {
+            font-size: 11px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 5px;
+            color: var(--accent);
+        }
+
+        .message-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .message-content th,
+        .message-content td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: left;
+        }
+
+        .message.user {
+            border-color: var(--accent);
+        }
+
+        .message.ai .message-avatar {
+            background-color: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 15px;
+            align-items: center;
+        }
+
+        .typing-indicator span {
+            font-size: 8px;
+            color: var(--text-secondary);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots div {
+            width: 6px;
+            height: 6px;
+            background-color: var(--text-secondary);
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots div:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots div:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+
+            0%,
+            60%,
+            100% {
+                opacity: 0.3;
+            }
+
+            30% {
+                opacity: 1;
+            }
+        }
+
+        /* Input Area */
+        .input-container {
+            background-color: var(--bg-secondary);
+            border-top: 2px solid var(--border-color);
+            padding: 20px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-field {
+            flex: 1;
+            background-color: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            padding: 15px;
+            resize: none;
+            outline: none;
+            min-height: 50px;
+            max-height: 120px;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent);
+        }
+
+        .input-field::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .send-btn {
+            background-color: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .send-btn:hover {
+            background-color: var(--bg-primary);
+            color: var(--accent);
+            outline: 2px solid var(--accent);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Commands bar */
+        .commands-bar {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .command-btn {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .command-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Scrollbar */
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+        }
+
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Footer */
+        .footer {
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: center;
+            font-size: 6px;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                font-size: 8px;
+            }
+
+            .header h1 {
+                font-size: 10px;
+            }
+
+            .message-content {
+                font-size: 8px;
+            }
+
+            .input-field {
+                font-size: 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <div class="main-container" id="mainContainer">
+            <!-- Header -->
+            <div class="header">
+                <h1>[ AI_AGENT v1.0 ]</h1>
+                <div class="status-bar">
+                    <div class="status-item">
+                        <div class="status-dot"></div>
+                        <span id="sysStatus">ONLINE</span>
+                    </div>
+                    <div class="status-item">
+                        <span>MODEL: GEMINI-2.5-FLASH</span>
+                    </div>
+                    <div class="status-item">
+                        <span id="latencyDisplay">LATENCY: 0ms</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Container -->
+            <div class="chat-container" id="chatContainer">
+                <!-- AI Welcome Message -->
+                <div class="message ai">
+                    <div class="message-header">
+                        <div class="message-avatar">AI</div>
+                        <span class="message-sender">SYSTEM</span>
+                        <span class="message-time init-time"></span>
+                    </div>
+                    <div class="message-content">
+                        > BIENVENIDO AL TERMINAL AI CON GOOGLE GEMINI<br><br>
+                        > SOY TU ASISTENTE DE INTELIGENCIA ARTIFICIAL.<br><br>
+                        > ESCRIBE TU CONSULTA PARA COMENZAR...<br><br>
+                        > COMANDOS DISPONIBLES:<br>
+                        &nbsp;&nbsp;/HELP - MOSTRAR AYUDA<br>
+                        &nbsp;&nbsp;/CLEAR - LIMPIAR CHAT<br>
+                        &nbsp;&nbsp;/STATUS - VER ESTADO
+                    </div>
+                </div>
+
+                <!-- Typing Indicator (hidden by default) -->
+                <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                    <span>> AI PROCESANDO</span>
+                    <div class="typing-dots">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea class="input-field" id="messageInput" placeholder="> ESCRIBE TU MENSAJE..."
+                        rows="1"></textarea>
+                    <button class="send-btn" id="sendBtn">
+                        ENVIAR
+                    </button>
+                </div>
+                <div class="commands-bar">
+                    <button class="command-btn" onclick="sendCommand('/help')">/HELP</button>
+                    <button class="command-btn" onclick="sendCommand('/clear')">/CLEAR</button>
+                    <button class="command-btn" onclick="sendCommand('/status')">/STATUS</button>
+                    <button class="command-btn" onclick="sendCommand('/history')">/HISTORY</button>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                [ TERMINAL AI // BUILD 2024.03 // ALL SYSTEMS NOMINAL ]
+            </div>
+        </div>
+
+        <!-- Right Side Editor -->
+        <div class="editor-container" id="editorContainer">
+            <div class="editor-header">
+                <h2>[ IDE // EN VIVO ]</h2>
+                <div class="editor-actions">
+                    <button onclick="copyCode()" id="copyCodeBtn">COPIAR</button>
+                    <button onclick="closeEditor()">CERRAR</button>
+                </div>
+            </div>
+            <div id="codeEditor"></div>
+            <div class="editor-footer">
+                <button onclick="copyCode()">GUARDAR / COPIAR PORTAPAPELES</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for Code syntax -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Mermaid.js for Diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <!-- Ace Editor JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/theme-tomorrow_night_eighties.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/mode-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/mode-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/mode-xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/mode-css.min.js"></script>
+
+    <script>
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
+        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+        const chatContainer = document.getElementById('chatContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const latencyDisplay = document.getElementById('latencyDisplay');
+
+        const editorContainer = document.getElementById('editorContainer');
+        const mainContainer = document.getElementById('mainContainer');
+
+        let aceEditor = null;
+
+        function openEditor(codeContent, languageClass) {
+            // First display the editor container so it has layout dimensions
+            editorContainer.classList.add('active');
+            mainContainer.classList.add('editor-open');
+
+            let mode = "ace/mode/javascript";
+            if (languageClass) {
+                if (languageClass.includes("python")) mode = "ace/mode/python";
+                if (languageClass.includes("html") || languageClass.includes("xml")) mode = "ace/mode/xml";
+                if (languageClass.includes("css")) mode = "ace/mode/css";
+            }
+
+            // Guarantee the DOM has painted the display: flex layout
+            setTimeout(() => {
+                if (!aceEditor) {
+                    aceEditor = ace.edit("codeEditor");
+                    aceEditor.setTheme("ace/theme/tomorrow_night_eighties");
+                    aceEditor.setOptions({
+                        fontSize: "14px",
+                        showPrintMargin: false,
+                        wrap: true
+                    });
+                }
+                
+                aceEditor.session.setMode(mode);
+                aceEditor.setValue(codeContent);
+                aceEditor.clearSelection();
+                
+                // Internal refresh after DOM changes
+                setTimeout(() => {
+                    aceEditor.resize();
+                    aceEditor.focus();
+                }, 100);
+            }, 10);
+        }
+
+        function closeEditor() {
+            editorContainer.classList.remove('active');
+            mainContainer.classList.remove('editor-open');
+        }
+
+        function copyCode() {
+            const code = aceEditor.getValue();
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.getElementById('copyCodeBtn');
+                const orig = btn.innerText;
+                btn.innerText = "¡OK!";
+                btn.style.color = "var(--accent)";
+                setTimeout(() => {
+                    btn.innerText = orig;
+                    btn.style.color = "";
+                }, 2000);
+            });
+        }
+
+        // Set initial time
+        document.querySelector('.init-time').innerText = getCurrentTime();
+
+        function getCurrentTime() {
+            const now = new Date();
+            return now.toTimeString().split(' ')[0];
+        }
+
+        function createMessage(content, isUser = true) {
+            const message = document.createElement('div');
+            message.className = `message ${isUser ? 'user' : 'ai'}`;
+            message.innerHTML = `
+                <div class="message-header">
+                    <div class="message-avatar">${isUser ? 'U' : 'AI'}</div>
+                    <span class="message-sender">${isUser ? 'USER' : 'SYSTEM'}</span>
+                    <span class="message-time">${getCurrentTime()}</span>
+                </div>
+                <div class="message-content">${content}</div>
+            `;
+            return message;
+        }
+
+        function addMessage(content, isUser = true) {
+            const message = createMessage(content, isUser);
+            chatContainer.insertBefore(message, typingIndicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'flex';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        async function simulateAIResponse(userMessage) {
+            showTyping();
+
+            // Local Commands Logic
+            if (userMessage === '/clear') {
+                hideTyping();
+                const messages = chatContainer.querySelectorAll('.message');
+                messages.forEach(msg => {
+                    // Don't remove the welcome message
+                    if (!msg.querySelector('.message-content').innerHTML.includes('BIENVENIDO AL TERMINAL')) {
+                        msg.remove();
+                    }
+                });
+                addMessage('> TERMINAL LIMPIADO<br>> LISTO PARA NUEVAS INSTRUCCIONES', false);
+                try {
+                    await fetch('/clear_history', { method: 'POST' });
+                } catch (e) {
+                    console.error("Error clearing backend history:", e);
+                }
+                return;
+            } else if (userMessage === '/status') {
+                hideTyping();
+                let response = '> ESTADO DEL SISTEMA:<br>';
+                response += '&nbsp;&nbsp;■ CPU: NOMINAL<br>';
+                response += '&nbsp;&nbsp;■ MEMORIA: OPTIMA<br>';
+                response += '&nbsp;&nbsp;■ API GEMINI: CONECTADA<br>';
+                response += '&nbsp;&nbsp;■ ESTADO: OPERATIVO';
+                addMessage(response, false);
+                return;
+            } else if (userMessage === '/help') {
+                hideTyping();
+                let response = '> COMANDOS DISPONIBLES:<br>';
+                response += '&nbsp;&nbsp;/HELP - ESTA AYUDA<br>';
+                response += '&nbsp;&nbsp;/CLEAR - LIMPIAR TERMINAL Y MEMORIA<br>';
+                response += '&nbsp;&nbsp;/STATUS - ESTADO DEL SISTEMA';
+                addMessage(response, false);
+                return;
+            } else if (userMessage === '/history') {
+                hideTyping();
+                addMessage('> HISTORIAL DE CHAT MANTENIDO EN EL SERVIDOR BACKEND (APP.PY).', false);
+                return;
+            }
+
+            // Backend API Call to Gemini
+            const startTime = Date.now();
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userMessage })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Server error");
+                }
+
+                hideTyping();
+
+                // Create a block for the AI response
+                const message = createMessage('', false);
+                chatContainer.insertBefore(message, typingIndicator);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+
+                const contentDiv = message.querySelector('.message-content');
+                let fullText = "";
+
+                // Stream reading
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let buffer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep partial line in buffer
+
+                    for (let line of lines) {
+                        line = line.trim();
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.replace('data: ', '').trim();
+                            if (dataStr) {
+                                try {
+                                    const parsed = JSON.parse(dataStr);
+                                    if (parsed.error) {
+                                        fullText += "\n> ERROR: " + parsed.error;
+                                    } else if (parsed.chunk) {
+                                        fullText += parsed.chunk;
+                                    }
+
+                                    // Render Markdown
+                                    contentDiv.innerHTML = marked.parse(fullText);
+
+                                    // Highlight code blocks
+                                    contentDiv.querySelectorAll('pre code').forEach((block) => {
+                                        if (!block.className.includes('language-mermaid')) {
+                                            hljs.highlightElement(block);
+
+                                            // Inject Side Editor Button
+                                            if (!block.parentElement.querySelector('.code-action-btn')) {
+                                                const btn = document.createElement('button');
+                                                btn.className = 'code-action-btn';
+                                                btn.innerText = 'EDITAR ✎';
+
+                                                let langClass = "";
+                                                block.classList.forEach(cls => {
+                                                    if (cls.startsWith('language-')) langClass = cls;
+                                                });
+
+                                                btn.onclick = () => openEditor(block.textContent, langClass);
+                                                block.parentElement.appendChild(btn);
+                                            }
+                                        }
+                                    });
+
+                                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                                } catch (e) {
+                                    console.error("Error parsing JSON chunk:", e, dataStr);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Render any mermaid diagrams
+                const mermaidBlocks = contentDiv.querySelectorAll('pre code.language-mermaid');
+                if (mermaidBlocks.length > 0) {
+                    mermaidBlocks.forEach(async (block, index) => {
+                        try {
+                            const mermaidCode = block.textContent;
+                            const id = 'mermaid-' + Date.now() + '-' + index;
+                            const { svg } = await mermaid.render(id, mermaidCode);
+
+                            const container = document.createElement('div');
+                            container.innerHTML = svg;
+                            container.style.textAlign = 'center';
+                            container.style.marginTop = '15px';
+                            container.style.marginBottom = '15px';
+                            block.parentElement.replaceWith(container);
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        } catch (e) {
+                            console.error("Mermaid parsing error: ", e);
+                            const errorMsg = document.createElement('div');
+                            errorMsg.style.color = '#ff6b6b';
+                            errorMsg.style.fontSize = '8px';
+                            errorMsg.innerText = "> DIAGRAM GENERATION FAILED";
+                            block.parentElement.insertAdjacentElement('afterend', errorMsg);
+                        }
+                    });
+                }
+
+                const latency = Date.now() - startTime;
+                latencyDisplay.innerText = `LATENCY: ${latency}ms`;
+
+            } catch (error) {
+                hideTyping();
+                addMessage('> ERROR DE CONEXIÓN CON EL SERVIDOR', false);
+            }
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                // Remove > from user message if they typed it
+                const cleanlyTypedMsg = message.startsWith('>') ? message.substring(1).trim() : message;
+
+                addMessage(cleanlyTypedMsg, true);
+                messageInput.value = '';
+                messageInput.style.height = 'auto'; // Reset size
+                simulateAIResponse(cleanlyTypedMsg);
+            }
+        }
+
+        function sendCommand(command) {
+            messageInput.value = command;
+            sendMessage();
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+    </script>
+</body>
+
+</html>
