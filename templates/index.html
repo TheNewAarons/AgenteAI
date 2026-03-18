@@ -16,6 +16,17 @@
 
 <body>
     <div class="app-wrapper">
+        <!-- Sidebar Explorer -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span>EXPLORADOR</span>
+                <button onclick="loadFileList()" class="command-btn" style="padding: 4px 8px;">↻</button>
+            </div>
+            <div class="file-explorer" id="fileExplorer">
+                > CARGANDO...
+            </div>
+        </div>
+
         <div class="main-container" id="mainContainer">
             <!-- Header -->
             <div class="header">
@@ -26,7 +37,7 @@
                         <span id="sysStatus">ONLINE</span>
                     </div>
                     <div class="status-item">
-                        <span>MODEL: GEMINI-1.5-FLASH</span>
+                        <span>MODEL: GEMINI-2.5-FLASH</span>
                     </div>
                     <div class="status-item">
                         <span id="latencyDisplay">LATENCY: 0ms</span>
@@ -99,7 +110,8 @@
             </div>
             <div id="codeEditor"></div>
             <div class="editor-footer">
-                <button onclick="copyCode()">GUARDAR / COPIAR PORTAPAPELES</button>
+                <button onclick="saveCodeToServer()" id="saveFileBtn">GUARDAR EN SERVIDOR</button>
+                <button onclick="copyCode()" style="background: transparent; border: 1px solid var(--accent); color: var(--accent); margin-left: 10px;">COPIAR</button>
             </div>
         </div>
     </div>
@@ -135,8 +147,89 @@
         const mainContainer = document.getElementById('mainContainer');
 
         let aceEditor = null;
+        let currentFilePath = null;
 
-        function openEditor(codeContent, languageClass) {
+        async function loadFileList() {
+            const explorer = document.getElementById('fileExplorer');
+            try {
+                const response = await fetch('/list_files');
+                const data = await response.json();
+                
+                // Procesar la estructura de texto a elementos clickeables
+                const lines = data.structure.split('\n');
+                explorer.innerHTML = '';
+                lines.forEach(line => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.innerText = line;
+                    
+                    // Extraer el nombre del archivo (limpiando espacios/indents)
+                    const fileName = line.trim().replace(/\/$/, '');
+                    if (fileName && !line.includes('/')) {
+                        div.onclick = () => openFileFromSidebar(line.trim());
+                    }
+                    explorer.appendChild(div);
+                });
+            } catch (e) {
+                explorer.innerText = '> ERROR AL CARGAR ARCHIVOS';
+            }
+        }
+
+        async function openFileFromSidebar(filename) {
+            try {
+                // Para simplificar, asumimos que el archivo está en la raíz o project-context
+                // En una versión más avanzada, usaríamos la ruta completa del list_directory
+                addMessage(`> ABRIENDO ARCHIVO: ${filename}`, true);
+                simulateAIResponse(`Lee el archivo ${filename} y muéstramelo`);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function saveCodeToServer() {
+            if (!currentFilePath) {
+                const path = prompt("> INGRESA LA RUTA PARA GUARDAR EL ARCHIVO:", "nuevo_archivo.py");
+                if (!path) return;
+                currentFilePath = path;
+            }
+
+            const code = aceEditor.getValue();
+            const btn = document.getElementById('saveFileBtn');
+            const originalText = btn.innerText;
+
+            btn.innerText = "GUARDANDO...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/save_file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: currentFilePath, content: code })
+                });
+                const data = await response.json();
+                
+                btn.innerText = "¡GUARDADO!";
+                btn.style.backgroundColor = "#4caf50";
+                loadFileList(); // Refrescar sidebar
+
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.backgroundColor = "";
+                    btn.disabled = false;
+                }, 2000);
+            } catch (e) {
+                btn.innerText = "ERROR";
+                btn.style.backgroundColor = "#f44336";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.backgroundColor = "";
+                    btn.disabled = false;
+                }, 2000);
+            }
+        }
+
+        function openEditor(codeContent, languageClass, filePath = null) {
+            currentFilePath = filePath;
             // First display the editor container so it has layout dimensions
             editorContainer.classList.add('active');
             mainContainer.classList.add('editor-open');
@@ -422,6 +515,11 @@
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });
+
+        // Initialize
+        window.onload = () => {
+            loadFileList();
+        };
     </script>
 </body>
 

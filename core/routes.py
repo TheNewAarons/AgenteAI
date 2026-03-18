@@ -1,0 +1,52 @@
+import json
+from flask import Blueprint, request, jsonify, render_template, Response
+from core.agent_engine import AIAgent
+
+main_bp = Blueprint('main', __name__)
+agent = AIAgent()
+
+@main_bp.route('/')
+def index():
+    return render_template('index.html')
+
+@main_bp.route('/chat', methods=['POST'])
+def chat_endpoint():
+    data = request.json
+    user_message = data.get('message')
+    
+    if not user_message:
+        return jsonify({"error": "Empty message"}), 400
+
+    def generate_response():
+        try:
+            # Iteramos sobre el generador de streaming real de AIAgent
+            for text_chunk in agent.send_message(user_message, stream=True):
+                yield f"data: {json.dumps({'chunk': text_chunk})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            
+    return Response(generate_response(), mimetype='text/event-stream')
+
+@main_bp.route('/clear_history', methods=['POST'])
+def clear_history():
+    agent.clear_history()
+    return jsonify({"status": "success", "message": "Historial borrado correctamente"})
+
+@main_bp.route('/list_files', methods=['GET'])
+def list_files():
+    from core.tools import list_directory
+    path = request.args.get('path', '.')
+    structure = list_directory(path)
+    return jsonify({"structure": structure})
+
+@main_bp.route('/save_file', methods=['POST'])
+def save_file():
+    from core.tools import create_file
+    data = request.json
+    path = data.get('path')
+    content = data.get('content')
+    if not path or content is None:
+        return jsonify({"error": "Faltan datos"}), 400
+    
+    result = create_file(path, content)
+    return jsonify({"message": result})

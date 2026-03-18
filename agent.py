@@ -1,31 +1,16 @@
 import os
-import google.generativeai as genai
-from dotenv import load_dotenv
+import sys
+from core.agent_engine import AIAgent
 
-# Cargar las variables de entorno desde el archivo .env
-load_dotenv()
-
-# Configurar la API key de Gemini
-# Buscamos GEMINI_API_KEY o OPENAI_API_KEY por si cambiaste el nombre o lo dejaste igual
-api_key = os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")
-
-if not api_key:
-    print("❌ No se encontró la API Key. Por favor agrégala en el archivo .env")
-    exit(1)
-
-genai.configure(api_key=api_key)
-
-# Usaremos el modelo gemini-1.5-flash por ser rápido y eficiente
-model = genai.GenerativeModel('gemini-1.5-flash')
-
-def agente_basico():
-    print("🤖 Hola, soy tu agente de IA impulsado por Google Gemini. Escribe 'salir' para terminar.")
+def agente_cli():
+    print("🤖 --- AgenteAI CLI (v2.5) ---")
+    print("Iniciando motor de IA...")
     
-    # Iniciamos sesión de chat para mantener el contexto
     try:
-        chat = model.start_chat(history=[])
+        agent = AIAgent()
+        print("🤖 ¡Listo! Escribe 'salir' para terminar.")
     except Exception as e:
-        print(f"❌ Error al inicializar el modelo: {e}")
+        print(f"❌ Error al inicializar el agente: {e}")
         return
 
     while True:
@@ -39,13 +24,17 @@ def agente_basico():
             if not user_input.strip():
                 continue
                 
-            # Enviamos el mensaje al modelo y obtenemos respuesta
-            response = chat.send_message(user_input)
+            # Enviamos el mensaje al modelo con streaming desactivado para consola
+            print("\n🤖 Agente: ", end="", flush=True)
+            for chunk in agent.send_message(user_input, stream=True):
+                print(chunk, end="", flush=True)
+            print("\n")
             
-            print(f"\n🤖 Agente:\n{response.text}")
-            
+        except KeyboardInterrupt:
+            print("\n🤖 ¡Hasta luego!")
+            break
         except Exception as e:
             print(f"\n❌ Ocurrió un error: {e}")
 
 if __name__ == "__main__":
-    agente_basico()
+    agente_cli()

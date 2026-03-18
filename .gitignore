@@ -8,6 +8,7 @@ chat_history.json
 
 # Archivos de caché de Python
 __pycache__/
+core/__pycache__/
 *.py[cod]
 *$py.class
 
