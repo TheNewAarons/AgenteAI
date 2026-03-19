@@ -1,0 +1,14 @@
+services:
+  agente-ai:
+    build: .
+    ports:
+      - "5001:5001"
+    volumes:
+      - .:/app
+      - vector_data:/app/.vector_db
+    env_file:
+      - .env
+    restart: always
+
+volumes:
+  vector_data:

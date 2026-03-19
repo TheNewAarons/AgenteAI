@@ -1,6 +1,6 @@
 import json
-from flask import Blueprint, request, jsonify, render_template, Response
-from core.agent_engine import AIAgent
+from flask import Blueprint, request, jsonify, render_template, Response, stream_with_context
+from app.engine.agent import AIAgent
 
 main_bp = Blueprint('main', __name__)
 agent = AIAgent()

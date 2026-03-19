@@ -3,14 +3,27 @@ import subprocess
 import sys
 import requests
 from bs4 import BeautifulSoup
+import logging
 from config import CONTEXT_DIR
+from . import tool
+from .security import is_safe_path
 
+# Configuración básica de logs
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Herramientas registradas dinámicamente vía @tool
+
+@tool
 def create_file(path: str, content: str) -> str:
     """Crea un nuevo archivo en la ruta especificada con el contenido dado.
     Args:
         path: Ruta donde se debe crear el archivo.
         content: El contenido de texto a escribir en el archivo.
     """
+    if not is_safe_path(path):
+        return f"ERROR: Acceso denegado. La ruta {path} está fuera del alcance permitido."
+    
     try:
         # Asegurar que el directorio existe
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
@@ -18,19 +31,26 @@ def create_file(path: str, content: str) -> str:
             f.write(content)
         return f"Archivo {path} creado exitosamente."
     except Exception as e:
+        logger.error(f"Error creando archivo {path}: {e}")
         return f"Error al crear el archivo {path}: {str(e)}"
 
+@tool
 def read_file(path: str) -> str:
     """Lee el contenido de un archivo en la ruta especificada.
     Args:
         path: Ruta del archivo a leer.
     """
+    if not is_safe_path(path):
+        return f"ERROR: Acceso denegado. La ruta {path} está fuera del alcance permitido."
+    
     try:
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
     except Exception as e:
+        logger.error(f"Error leyendo archivo {path}: {e}")
         return f"Error al leer el archivo {path}: {str(e)}"
 
+@tool
 def run_python_code(code: str) -> str:
     """Ejecuta código Python en un subproceso y retorna el output.
     Args:
@@ -51,13 +71,21 @@ def run_python_code(code: str) -> str:
     except Exception as e:
         return f"ERROR ejecutando código: {str(e)}"
 
+@tool
 def run_command(command: str) -> str:
     """Ejecuta un comando del sistema (bash/shell) y retorna su salida.
     Usa esto para tareas de terminal como listar archivos (ls), ver estado de git, etc.
     Args:
         command: El comando a ejecutar (ej: 'ls -R', 'git status').
     """
+    # Lista negra de comandos peligrosos
+    forbidden = ["rm ", "sudo ", "chmod ", "chown ", "mv /", "del "]
+    if any(cmd in command.lower() for cmd in forbidden):
+        return "ERROR: Comando bloqueado por razones de seguridad."
+
     try:
+        # Usamos shell=False por defecto y pasamos el comando como lista si es posible
+        # Para mantener compatibilidad con comandos complejos, usamos shell=True pero con filtros previos
         result = subprocess.run(
             command, shell=True, capture_output=True, text=True, timeout=20
         )
@@ -69,8 +97,10 @@ def run_command(command: str) -> str:
     except subprocess.TimeoutExpired:
         return "ERROR: El comando excedió el tiempo límite de 20 segundos."
     except Exception as e:
+        logger.error(f"Error ejecutando comando '{command}': {e}")
         return f"ERROR ejecutando comando: {str(e)}"
 
+@tool
 def list_directory(path: str = ".") -> str:
     """Lista la estructura de archivos y carpetas de un directorio.
     Args:
@@ -94,6 +124,7 @@ def list_directory(path: str = ".") -> str:
     except Exception as e:
         return f"ERROR listando directorio: {str(e)}"
 
+@tool
 def fetch_url(url: str) -> str:
     """Obtiene el contenido de una URL y lo convierte a texto plano legible.
     Args:
@@ -118,6 +149,7 @@ def fetch_url(url: str) -> str:
     except Exception as e:
         return f"ERROR al obtener URL {url}: {str(e)}"
 
+@tool
 def search_context(keyword: str) -> str:
     """Busca una palabra clave en los archivos de proyecto-context/."""
     results = []
@@ -139,5 +171,4 @@ def search_context(keyword: str) -> str:
                     results.append(f"[{filename}] ERROR: {e}")
     return "\n\n".join(results) if results else f"No se encontraron coincidencias para '{keyword}'."
 
-# Lista de herramientas para ser exportada
-ALL_TOOLS = [create_file, read_file, run_python_code, run_command, list_directory, fetch_url, search_context]
+# El bloque ALL_TOOLS = [...] al final ya no es necesario ya que se puebla via @tool
