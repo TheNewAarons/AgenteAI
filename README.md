@@ -1,6 +1,6 @@
 # 🤖 AgenteAI — Asistente de Ingeniería Informática Pro
 
-> **AgenteAI v2.5** es una plataforma de inteligencia artificial avanzada diseñada específicamente para potenciar la productividad de ingenieros de software, arquitectos de sistemas y líderes técnicos. Impulsado por el modelo **Google Gemini 2.5 Flash**, este asistente no solo conversa, sino que opera directamente sobre tu entorno de desarrollo.
+> **AgenteAI v3.0** es una plataforma de inteligencia artificial avanzada diseñada específicamente para potenciar la productividad de ingenieros de software, arquitectos de sistemas y líderes técnicos. Impulsado por el modelo **Google Gemini 2.5 Flash**, este asistente no solo conversa, sino que opera directamente sobre tu entorno de desarrollo con una arquitectura modular y segura.
 
 ---
 
@@ -20,14 +20,14 @@ AgenteAI actúa como un **Principal Tech Lead Engineer** virtual. Está diseñad
 
 El proyecto sigue una arquitectura modular y reactiva para garantizar rapidez y extensibilidad:
 
-### Flujo de Datos
+### Flujo de Datos y RAG
 1.  **Frontend (UI)**: Interfaz basada en terminal que envía mensajes via JSON a Flask.
 2.  **Backend (Flask)**: Gestiona las rutas y levanta el motor de IA (`AIAgent`).
-3.  **Motor de IA (`AIAgent`)**: 
-    *   Inyecta el **Contexto Dinámico** (archivos de `project-context/`).
+3.  **Búsqueda Semántica (RAG)**: Antes de responder, el sistema consulta una base de datos vectorial (**ChromaDB**) para inyectar fragmentos relevantes de tu contexto.
+4.  **Motor de IA (`AIAgent`)**: 
     *   Gestiona la sesión con **Gemini 2.5 Flash**.
-    *   Implementa un **Bucle de Ejecución de Herramientas** manual para permitir streaming real de texto mientras procesa llamadas a funciones.
-4.  **Capa de Herramientas (`Tools`)**: Funciones nativas de Python que el agente "llama" para interactuar con el sistema de archivos, la web o el terminal.
+    *   Implementa un **Bucle de Ejecución de Herramientas** manual para permitir streaming real de texto.
+5.  **Capa de Herramientas (`Tools`)**: Funciones nativas con sandboxing que interactúan con el sistema.
 
 ### Stack Tecnológico
 *   **Lenguaje**: Python 3.10+
@@ -55,6 +55,15 @@ A diferencia de un chat convencional, AgenteAI tiene "manos" en el sistema a tra
 | `list_directory` | Explora la estructura de carpetas (excluyendo basura como `node_modules`).| Entender la jerarquía de un proyecto nuevo. |
 | `fetch_url` | Navega por la web y extrae el texto limpio de una URL. | Leer documentación oficial o noticias técnicas. |
 | `search_context` | Busca palabras clave en el directorio `project-context/`. | Localizar guías de estilo o recordatorios específicos. |
+
+---
+
+## 🛡️ Seguridad de Nivel Industrial
+
+El sistema incorpora múltiples capas de protección:
+- **Validación de Rutas**: Todas las operaciones de archivos están restingidas al directorio del proyecto mediante `is_safe_path`.
+- **Filtros de Comandos**: Lista negra de comandos peligrosos (`rm`, `sudo`, `chmod`) para evitar daños accidentales.
+- **Sanitización de Salida**: Integración de **DOMPurify** en el frontend para prevenir ataques XSS.
 
 ---
 
@@ -101,22 +110,31 @@ La interfaz web ha sido diseñada para ser una herramienta de trabajo de alta ga
     ```env
     GEMINI_API_KEY=tu_api_key_aqui
     ```
-5.  **Ejecutar:** `python3 app.py`
+5.  **Ejecutar:** `python3 run.py`
 
-Accede en: [http://127.0.0.1:5000](http://127.0.0.1:5000)
+Accede en: [http://127.0.0.1:5001](http://127.0.0.1:5001)
+
+### Despliegue con Docker
+Si prefieres usar contenedores:
+```bash
+docker-compose up --build
+```
+*Nota: Se usa el puerto 5001 para evitar conflictos con AirPlay en macOS.*
 
 ---
 
-## 📂 Organización del Proyecto
+## 📂 Organización Profesional del Proyecto
 
-*   `app.py`: Punto de entrada Flask y configuración del servidor.
-*   `agent.py`: Interfaz de línea de comandos (CLI) minimalista.
-*   `core/`: El "corazón" del sistema.
-    *   `agent_engine.py`: Lógica de orquestación de Gemini y manejo de hilos.
-    *   `tools.py`: Definición de funciones y herramientas del sistema.
-    *   `routes.py`: Endpoints de la API REST.
+El proyecto sigue una estructura de **Arquitectura Limpia**:
+
+*   `run.py`: Punto de entrada principal de la aplicación.
+*   `app/`: Directorio raíz de la lógica modular.
+    *   `api/`: Rutas y Blueprints de Flask.
+    *   `engine/`: El "corazón" con el Agente, RAG (VectorDB) y Managers.
+    *   `tools/`: Herramientas del sistema y lógica de seguridad.
+    *   `static/` & `templates/`: Capa visual modernizada.
+*   `data/`: Almacenamiento persistente (Base de datos vectorial e historial).
 *   `project-context/`: Base de datos de conocimiento en Markdown.
-*   `static/` & `templates/`: El motor visual (CSS, JS, Jinja2).
 
 ---
 

@@ -3,12 +3,15 @@ venv/
 env/
 .env
 
-# Archivos de la base de datos local
+# Datos persistentes del Agente (Ignorar contenido pero mantener carpeta si se desea)
+data/
 chat_history.json
+.vector_db/
 
-# Archivos de caché de Python
+# Archivos de caché de Python y Tests
 __pycache__/
-core/__pycache__/
+app/**/__pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 
@@ -19,7 +22,7 @@ core/__pycache__/
 .Spotlight-V100
 .Trashes
 
-# Herramientas y dependencias varias
+# IDEs y Editores
 .idea/
 .vscode/
 *.swp
