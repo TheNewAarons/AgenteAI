@@ -12,7 +12,7 @@ class ContextManager:
         self._index_context()
 
     def _index_context(self):
-        """Escanea archivos y actualiza la base de datos vectorial."""
+        """Escanea archivos y actualiza la base de datos vectorial solo si han cambiado."""
         if not os.path.isdir(self.context_dir):
             return
 
@@ -24,16 +24,18 @@ class ContextManager:
             if filename.endswith(".md"):
                 filepath = os.path.join(self.context_dir, filename)
                 try:
+                    mtime = os.path.getmtime(filepath)
                     with open(filepath, "r", encoding="utf-8") as f:
                         content = f.read().strip()
                     if content:
                         docs.append(content)
                         ids.append(filename)
-                        metadatas.append({"source": filename})
+                        metadatas.append({"source": filename, "mtime": mtime})
                 except Exception as e:
                     print(f"Error indexando {filename}: {e}")
         
         if docs:
+            # Upsert manejará la actualización si el contenido o metadata cambió
             self.vdb.add_documents(docs, ids, metadatas)
 
     def load_all(self) -> str:

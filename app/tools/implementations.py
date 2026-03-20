@@ -106,6 +106,9 @@ def list_directory(path: str = ".") -> str:
     Args:
         path: La ruta del directorio a listar.
     """
+    if not is_safe_path(path):
+        return f"ERROR: Acceso denegado. La ruta {path} está fuera del alcance permitido."
+
     try:
         # Excluir directorios pesados o irrelevantes
         exclude = ["venv", "__pycache__", ".git", "node_modules", ".DS_Store"]

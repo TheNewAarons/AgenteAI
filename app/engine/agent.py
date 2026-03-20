@@ -1,3 +1,6 @@
+import google.generativeai as genai
+from config import GEMINI_API_KEY, MODEL_NAME, CONTEXT_DIR, HISTORY_FILE
+from app.tools import ALL_TOOLS
 from .managers import ContextManager, HistoryManager
 
 class AIAgent:
@@ -42,7 +45,7 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
 - Responde siempre en Español (Chile).
 - Sé directo, técnico y evita relleno.
 - Usa bloques de código con lenguaje especificado (```python, ```js, etc.).
-- Identifícate como el Agente Modular v2.0-Refactored."""
+- Identifícate como el Agente Modular v3.0-PRO."""
 
         if context:
             base_prompt += f"\n\n---\n\n## CONTEXTO DINÁMICO DEL USUARIO\n\n{context}"
@@ -60,16 +63,26 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
     def save_history(self):
         self.history_mgr.save(self.chat_session)
 
-    def send_message(self, message: str, stream=True):
+    def send_message(self, message: str, stream=True, _recursion_limit=5):
         """Envía un mensaje al modelo, inyectando contexto relevante vía RAG."""
-        
+        if _recursion_limit <= 0:
+            yield "ERROR: Se ha alcanzado el límite de recursión en llamadas a herramientas."
+            return
+
         # 1. RAG: Buscar contexto si es un mensaje de texto (no una respuesta de herramienta)
         if isinstance(message, str):
             context_fragment = self.context_mgr.search(message)
             if context_fragment:
                 message = f"[CONTEXTO RELEVANTE]\n{context_fragment}\n\n[MENSAJE USUARIO]\n{message}"
 
-        response = self.chat_session.send_message(message, stream=stream)
+        try:
+            response = self.chat_session.send_message(message, stream=stream)
+        except Exception as e:
+            error_msg = f"Error en la comunicación con el modelo: {str(e)}"
+            if stream:
+                yield error_msg
+                return
+            return error_msg
         
         if stream:
             for chunk in response:
@@ -91,7 +104,10 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
                         # Buscar la función en nuestras herramientas
                         tool_fn = next((t for t in ALL_TOOLS if t.__name__ == fn_name), None)
                         if tool_fn:
-                            result = tool_fn(**fn_args)
+                            try:
+                                result = tool_fn(**fn_args)
+                            except Exception as e:
+                                result = f"Error ejecutando la herramienta {fn_name}: {str(e)}"
                             
                             # Enviar la respuesta de la herramienta de vuelta al modelo
                             # Y RECURSIVAMENTE obtener el resto de la respuesta (streaming)
@@ -103,7 +119,7 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
                             }
                             
                             # Continuar el flujo enviando la respuesta de vuelta
-                            for sub_chunk in self.send_message(tool_response, stream=True):
+                            for sub_chunk in self.send_message(tool_response, stream=True, _recursion_limit=_recursion_limit-1):
                                 yield sub_chunk
             self.save_history()
         else:
@@ -115,14 +131,18 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
                         fn_args = part.function_call.args
                         tool_fn = next((t for t in ALL_TOOLS if t.__name__ == fn_name), None)
                         if tool_fn:
-                            result = tool_fn(**fn_args)
+                            try:
+                                result = tool_fn(**fn_args)
+                            except Exception as e:
+                                result = f"Error ejecutando la herramienta {fn_name}: {str(e)}"
+
                             tool_response_part = {
                                 'function_response': {
                                     'name': fn_name,
                                     'response': {'result': result}
                                 }
                             }
-                            return self.send_message(tool_response_part, stream=False)
+                            return self.send_message(tool_response_part, stream=False, _recursion_limit=_recursion_limit-1)
             
             self.save_history()
             return response.text
