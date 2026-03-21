@@ -9,7 +9,6 @@ class VectorDB:
             path=db_path,
             settings=Settings(anonymized_telemetry=False)
         )
-        # Usamos un modelo local ligero para los embeddings
         self.emb_fn = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
         self.collection = self.client.get_or_create_collection(
             name="project_context",
@@ -17,7 +16,7 @@ class VectorDB:
         )
 
     def add_documents(self, documents: list, ids: list, metadatas: list = None):
-        """Añade o actualiza documentos en la colección."""
+        """Adds or updates documents in collection."""
         self.collection.upsert(
             documents=documents,
             ids=ids,
@@ -25,12 +24,11 @@ class VectorDB:
         )
 
     def query(self, query_text: str, n_results: int = 5):
-        """Busca los fragmentos más relevantes para una consulta."""
+        """Retrieves relevant fragments for query."""
         results = self.collection.query(
             query_texts=[query_text],
             n_results=n_results
         )
-        # Formatear resultados para el prompt
         context_parts = []
         if results['documents']:
             for i, doc in enumerate(results['documents'][0]):

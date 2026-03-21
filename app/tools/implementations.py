@@ -22,7 +22,7 @@ def plan_tasks(tasks: list) -> str:
     from app.engine.managers import TaskManager
     tm = TaskManager(os.path.join(DATA_DIR, "tasks.json"))
     tm.add_tasks(tasks)
-    return f"Plan de {len(tasks)} tareas registrado exitosamente."
+    return f"Plan of {len(tasks)} tasks registered."
 
 @tool
 def update_task_status(task_id: int, status: str, result: str = "") -> str:
@@ -36,7 +36,7 @@ def update_task_status(task_id: int, status: str, result: str = "") -> str:
     from app.engine.managers import TaskManager
     tm = TaskManager(os.path.join(DATA_DIR, "tasks.json"))
     tm.update_task(task_id, status, result)
-    return f"Tarea {task_id} actualizada a {status}."
+    return f"Task {task_id} updated to {status}."
 
 @tool
 def get_tasks() -> str:
@@ -45,14 +45,12 @@ def get_tasks() -> str:
     from app.engine.managers import TaskManager
     tm = TaskManager(os.path.join(DATA_DIR, "tasks.json"))
     tasks = tm.load()
-    if not tasks: return "No hay tareas planeadas actualmente."
+    if not tasks: return "No tasks planned."
     
     res = ["### Plan de Trabajo Actual:"]
     for t in tasks:
         res.append(f"{t['id']}. [{t['status']}] {t['description']}")
     return "\n".join(res)
-
-# Herramientas registradas dinámicamente vía @tool
 
 @tool
 def create_file(path: str, content: str) -> str:
@@ -62,17 +60,16 @@ def create_file(path: str, content: str) -> str:
         content: El contenido de texto a escribir en el archivo.
     """
     if not is_safe_path(path):
-        return f"ERROR: Acceso denegado. La ruta {path} está fuera del alcance permitido."
+        return f"ERROR: Access denied. Path {path} is prohibited."
     
     try:
-        # Asegurar que el directorio existe
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)
-        return f"Archivo {path} creado exitosamente."
+        return f"File {path} created."
     except Exception as e:
-        logger.error(f"Error creando archivo {path}: {e}")
-        return f"Error al crear el archivo {path}: {str(e)}"
+        logger.error(f"Error creating file {path}: {e}")
+        return f"Error creating file {path}: {str(e)}"
 
 @tool
 def read_file(path: str) -> str:
@@ -81,14 +78,14 @@ def read_file(path: str) -> str:
         path: Ruta del archivo a leer.
     """
     if not is_safe_path(path):
-        return f"ERROR: Acceso denegado. La ruta {path} está fuera del alcance permitido."
+        return f"ERROR: Access denied. Path {path} is prohibited."
     
     try:
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
     except Exception as e:
-        logger.error(f"Error leyendo archivo {path}: {e}")
-        return f"Error al leer el archivo {path}: {str(e)}"
+        logger.error(f"Error reading file {path}: {e}")
+        return f"Error reading file {path}: {str(e)}"
 
 @tool
 def run_python_code(code: str) -> str:
@@ -105,11 +102,11 @@ def run_python_code(code: str) -> str:
         errors = result.stderr or ""
         if errors:
             return f"OUTPUT:\n{output}\nERRORS:\n{errors}" if output else f"ERROR:\n{errors}"
-        return f"OUTPUT:\n{output}" if output else "(Sin salida producida)"
+        return f"OUTPUT:\n{output}" if output else "(No output)"
     except subprocess.TimeoutExpired:
-        return "ERROR: La ejecución excedió el tiempo límite de 15 segundos."
+        return "ERROR: Execution timeout (15s)."
     except Exception as e:
-        return f"ERROR ejecutando código: {str(e)}"
+        return f"ERROR executing code: {str(e)}"
 
 @tool
 def run_command(command: str) -> str:
@@ -121,11 +118,9 @@ def run_command(command: str) -> str:
     # Lista negra de comandos peligrosos
     forbidden = ["rm ", "sudo ", "chmod ", "chown ", "mv /", "del "]
     if any(cmd in command.lower() for cmd in forbidden):
-        return "ERROR: Comando bloqueado por razones de seguridad."
+        return "ERROR: Command blocked for security."
 
     try:
-        # Usamos shell=False por defecto y pasamos el comando como lista si es posible
-        # Para mantener compatibilidad con comandos complejos, usamos shell=True pero con filtros previos
         result = subprocess.run(
             command, shell=True, capture_output=True, text=True, timeout=20
         )
@@ -133,12 +128,12 @@ def run_command(command: str) -> str:
         errors = result.stderr or ""
         if errors:
             return f"STDOUT:\n{output}\nSTDERR:\n{errors}" if output else f"STDERR:\n{errors}"
-        return f"STDOUT:\n{output}" if output else "(Comando ejecutado sin salida)"
+        return f"STDOUT:\n{output}" if output else "(Success)"
     except subprocess.TimeoutExpired:
-        return "ERROR: El comando excedió el tiempo límite de 20 segundos."
+        return "ERROR: Command timeout (20s)."
     except Exception as e:
-        logger.error(f"Error ejecutando comando '{command}': {e}")
-        return f"ERROR ejecutando comando: {str(e)}"
+        logger.error(f"Error executing command '{command}': {e}")
+        return f"ERROR executing command: {str(e)}"
 
 @tool
 def list_directory(path: str = ".") -> str:
@@ -147,14 +142,12 @@ def list_directory(path: str = ".") -> str:
         path: La ruta del directorio a listar.
     """
     if not is_safe_path(path):
-        return f"ERROR: Acceso denegado. La ruta {path} está fuera del alcance permitido."
+        return f"ERROR: Access denied. Path {path} is prohibited."
 
     try:
-        # Excluir directorios pesados o irrelevantes
         exclude = ["venv", "__pycache__", ".git", "node_modules", ".DS_Store"]
         result = []
         for root, dirs, files in os.walk(path):
-            # Modificar dirs in-place para saltar los excluidos
             dirs[:] = [d for d in dirs if d not in exclude]
             level = root.replace(path, '').count(os.sep)
             indent = ' ' * 4 * level
@@ -165,7 +158,7 @@ def list_directory(path: str = ".") -> str:
                     result.append(f"{sub_indent}{f}")
         return "\n".join(result)
     except Exception as e:
-        return f"ERROR listando directorio: {str(e)}"
+        return f"ERROR listing directory: {str(e)}"
 
 @tool
 def fetch_url(url: str) -> str:
@@ -178,23 +171,21 @@ def fetch_url(url: str) -> str:
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # Limpiar scripts y estilos
         for script in soup(["script", "style"]):
             script.decompose()
             
         text = soup.get_text(separator='\n')
-        # Limpiar espacios en blanco
         lines = (line.strip() for line in text.splitlines())
         chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
         text = '\n'.join(chunk for chunk in chunks if chunk)
         
-        return text[:10000] # Limitar a 10k caracteres para el contexto de la IA
+        return text[:10000]
     except Exception as e:
-        return f"ERROR al obtener URL {url}: {str(e)}"
+        return f"ERROR fetching URL {url}: {str(e)}"
 
 @tool
 def search_context(keyword: str) -> str:
-    """Busca una palabra clave en los archivos de proyecto-context/."""
+    """Searches keyword in project context files."""
     results = []
     if os.path.isdir(CONTEXT_DIR):
         for filename in sorted(os.listdir(CONTEXT_DIR)):
@@ -204,7 +195,7 @@ def search_context(keyword: str) -> str:
                     with open(filepath, "r", encoding="utf-8") as f:
                         lines = f.readlines()
                     matches = [
-                        f"  Línea {i+1}: {line.rstrip()}"
+                        f"  Line {i+1}: {line.rstrip()}"
                         for i, line in enumerate(lines)
                         if keyword.lower() in line.lower()
                     ]
@@ -212,6 +203,5 @@ def search_context(keyword: str) -> str:
                         results.append(f"[{filename}]\n" + "\n".join(matches))
                 except Exception as e:
                     results.append(f"[{filename}] ERROR: {e}")
-    return "\n\n".join(results) if results else f"No se encontraron coincidencias para '{keyword}'."
+    return "\n\n".join(results) if results else f"No matches found for '{keyword}'."
 
-# El bloque ALL_TOOLS = [...] al final ya no es necesario ya que se puebla via @tool

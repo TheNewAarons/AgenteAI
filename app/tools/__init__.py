@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 ALL_TOOLS = []
 
 def tool(fn):
-    """Decorador para registrar una función como herramienta del agente."""
+    """Decorator to register function as agent tool."""
     if fn not in ALL_TOOLS:
         ALL_TOOLS.append(fn)
     return fn

@@ -4,7 +4,7 @@ from config import BASE_DIR, VECTOR_DB_DIR
 from app.engine.vectordb import VectorDB
 
 class ContextManager:
-    """Gestiona la carga e inyección de contexto usando RAG (Vector DB)."""
+    """Manages RAG context via Vector DB."""
     def __init__(self, context_dir: str):
         self.context_dir = context_dir
         self.db_path = VECTOR_DB_DIR
@@ -12,7 +12,7 @@ class ContextManager:
         self._index_context()
 
     def _index_context(self):
-        """Escanea archivos y actualiza la base de datos vectorial solo si han cambiado."""
+        """Updates vector database if documents changed."""
         if not os.path.isdir(self.context_dir):
             return
 
@@ -32,14 +32,13 @@ class ContextManager:
                         ids.append(filename)
                         metadatas.append({"source": filename, "mtime": mtime})
                 except Exception as e:
-                    print(f"Error indexando {filename}: {e}")
+                    print(f"Indexing error {filename}: {e}")
         
         if docs:
-            # Upsert manejará la actualización si el contenido o metadata cambió
             self.vdb.add_documents(docs, ids, metadatas)
 
     def load_all(self) -> str:
-        """Carga todo el contexto para el prompt del sistema inicial."""
+        """Loads all context files."""
         context_blocks = []
         if os.path.isdir(self.context_dir):
             for filename in sorted(os.listdir(self.context_dir)):
@@ -50,11 +49,11 @@ class ContextManager:
         return "\n\n".join(context_blocks)
 
     def search(self, query: str) -> str:
-        """Busca fragmentos relevantes usando RAG."""
+        """Retrieves relevant fragments via RAG."""
         return self.vdb.query(query, n_results=3)
 
 class HistoryManager:
-    """Gestiona la persistencia y carga del historial de chat."""
+    """Manages chat history persistence."""
     def __init__(self, history_file: str):
         self.history_file = history_file
 
@@ -64,7 +63,7 @@ class HistoryManager:
                 with open(self.history_file, "r", encoding="utf-8") as f:
                     return json.load(f)
             except Exception as e:
-                print(f"Error cargando historial: {e}")
+                print(f"History load error: {e}")
         return []
 
     def save(self, chat_session):
@@ -94,19 +93,18 @@ class HistoryManager:
                     "parts": parts
                 })
             
-            # Asegurar que la carpeta data/ existe
             os.makedirs(os.path.dirname(os.path.abspath(self.history_file)), exist_ok=True)
             with open(self.history_file, "w", encoding="utf-8") as f:
                 json.dump(history_entries, f, indent=4, ensure_ascii=False)
         except Exception as e:
-            print(f"Error guardando historial: {e}")
+            print(f"History save error: {e}")
 
     def clear(self):
         if os.path.exists(self.history_file):
             os.remove(self.history_file)
 
 class TaskManager:
-    """Gestiona el ciclo de vida de las sub-tareas de un objetivo complejo."""
+    """Manages complex objective sub-tasks."""
     def __init__(self, tasks_file: str):
         self.tasks_file = tasks_file
 

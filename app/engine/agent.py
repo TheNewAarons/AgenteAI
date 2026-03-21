@@ -7,7 +7,7 @@ from .managers import ContextManager, HistoryManager, TaskManager
 class AIAgent:
     def __init__(self):
         if not GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY no configurada.")
+            raise ValueError("GEMINI_API_KEY not configured.")
         
         self.context_mgr = ContextManager(CONTEXT_DIR)
         self.history_mgr = HistoryManager(HISTORY_FILE)
@@ -23,14 +23,12 @@ class AIAgent:
         self._load_session()
 
     def _build_system_prompt(self, user_query: str = "") -> str:
-        """Construye el prompt del sistema base + fragmentos RAG."""
-        # Si no hay query (inicio), cargamos una visión general o nada
+        """Constructs system prompt with RAG context."""
         context = ""
         if user_query:
             context = self.context_mgr.search(user_query)
         else:
-            # Al inicio, cargar solo los perfiles básicos si existen
-            context = self.context_mgr.load_all() # O un subconjunto
+            context = self.context_mgr.load_all()
         
         base_prompt = """Eres un Ingeniero Principal en Informática y Tech Lead multidisciplinario altamente especializado.
 Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fases de un proyecto de software.
@@ -55,7 +53,7 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
         return base_prompt
 
     def _load_session(self):
-        """Inicializa o recupera la sesión de chat con el historial guardado."""
+        """Initializes chat session with history."""
         history = self.history_mgr.load()
         self.chat_session = self.model.start_chat(
             history=history,
@@ -66,12 +64,11 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
         self.history_mgr.save(self.chat_session)
 
     def send_message(self, message: str, stream=True, _recursion_limit=5):
-        """Envía un mensaje al modelo, inyectando contexto relevante vía RAG."""
+        """Processes message and manages tool execution loop."""
         if _recursion_limit <= 0:
-            yield "ERROR: Se ha alcanzado el límite de recursión en llamadas a herramientas."
+            yield "ERROR: Maximum tool execution recursion reached."
             return
 
-        # 1. RAG: Buscar contexto si es un mensaje de texto (no una respuesta de herramienta)
         if isinstance(message, str):
             context_fragment = self.context_mgr.search(message)
             if context_fragment:
@@ -80,7 +77,7 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
         try:
             response = self.chat_session.send_message(message, stream=stream)
         except Exception as e:
-            error_msg = f"Error en la comunicación con el modelo: {str(e)}"
+            error_msg = f"Model communication error: {str(e)}"
             if stream:
                 yield error_msg
                 return
@@ -88,31 +85,25 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
         
         if stream:
             for chunk in response:
-                # Si el chunk tiene texto, lo emitimos
                 try:
                     if chunk.text:
                         yield chunk.text
                 except:
-                    # A veces el chunk no tiene texto si es una function_call
                     pass
                 
                 # Revisar si hay llamadas a funciones en este chunk
                 for part in chunk.parts:
                     if part.function_call:
-                        # Ejecutar la herramienta
                         fn_name = part.function_call.name
                         fn_args = part.function_call.args
                         
-                        # Buscar la función en nuestras herramientas
                         tool_fn = next((t for t in ALL_TOOLS if t.__name__ == fn_name), None)
                         if tool_fn:
                             try:
                                 result = tool_fn(**fn_args)
                             except Exception as e:
-                                result = f"Error ejecutando la herramienta {fn_name}: {str(e)}"
+                                result = f"Tool execution error {fn_name}: {str(e)}"
                             
-                            # Enviar la respuesta de la herramienta de vuelta al modelo
-                            # Y RECURSIVAMENTE obtener el resto de la respuesta (streaming)
                             tool_response = {
                                 'function_response': {
                                     'name': fn_name,
@@ -120,7 +111,6 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
                                 }
                             }
                             
-                            # Continuar el flujo enviando la respuesta de vuelta
                             for sub_chunk in self.send_message(tool_response, stream=True, _recursion_limit=_recursion_limit-1):
                                 yield sub_chunk
             self.save_history()
@@ -136,7 +126,7 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
                             try:
                                 result = tool_fn(**fn_args)
                             except Exception as e:
-                                result = f"Error ejecutando la herramienta {fn_name}: {str(e)}"
+                                result = f"Tool execution error {fn_name}: {str(e)}"
 
                             tool_response_part = {
                                 'function_response': {
@@ -150,6 +140,6 @@ Tu objetivo es ser el asistente técnico de cabecera del usuario en TODAS las fa
             return response.text
 
     def clear_history(self):
-        """Reinicia el chat y borra el historial."""
+        """Clears history and resets session."""
         self.history_mgr.clear()
         self._load_session()

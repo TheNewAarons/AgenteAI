@@ -26,7 +26,6 @@ def chat_endpoint():
     agent_instance = get_agent()
     def generate_response():
         try:
-            # Iteramos sobre el generador de streaming real de AIAgent
             for text_chunk in agent_instance.send_message(user_message, stream=True):
                 yield f"data: {json.dumps({'chunk': text_chunk})}\n\n"
         except Exception as e:
@@ -37,7 +36,7 @@ def chat_endpoint():
 @main_bp.route('/clear_history', methods=['POST'])
 def clear_history():
     get_agent().clear_history()
-    return jsonify({"status": "success", "message": "Historial borrado correctamente"})
+    return jsonify({"status": "success", "message": "History cleared."})
 
 @main_bp.route('/list_files', methods=['GET'])
 def list_files():
@@ -53,7 +52,7 @@ def save_file():
     path = data.get('path')
     content = data.get('content')
     if not path or content is None:
-        return jsonify({"error": "Faltan datos"}), 400
+        return jsonify({"error": "Missing data"}), 400
     
     result = create_file(path, content)
     return jsonify({"message": result})

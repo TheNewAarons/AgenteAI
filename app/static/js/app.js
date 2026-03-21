@@ -1,4 +1,3 @@
-// AgenteAI Frontend Core v3.0
 marked.setOptions({
     breaks: true,
     gfm: true
@@ -27,14 +26,14 @@ async function loadFileList() {
     try {
         const response = await fetch('/list_files');
         const data = await response.json();
-        
+
         const lines = data.structure.split('\n');
         explorer.innerHTML = '';
         lines.forEach(line => {
             const div = document.createElement('div');
             div.className = 'file-item';
             div.innerText = line;
-            
+
             const fileName = line.trim().replace(/\/$/, '');
             if (fileName && !line.includes('/')) {
                 div.onclick = () => simulateAIResponse(`Lee el archivo ${line.trim()} y muéstramelo`);
@@ -42,13 +41,13 @@ async function loadFileList() {
             explorer.appendChild(div);
         });
     } catch (e) {
-        explorer.innerText = '> ERROR AL CARGAR ARCHIVOS';
+        explorer.innerText = '> ERROR LOADING FILES';
     }
 }
 
 async function saveCodeToServer() {
     if (!currentFilePath) {
-        const path = prompt("> INGRESA LA RUTA PARA GUARDAR EL ARCHIVO:", "nuevo_archivo.py");
+        const path = prompt("> ENTER SAVE PATH:", "new_file.py");
         if (!path) return;
         currentFilePath = path;
     }
@@ -57,7 +56,7 @@ async function saveCodeToServer() {
     const btn = document.getElementById('saveFileBtn');
     const originalText = btn.innerText;
 
-    btn.innerText = "GUARDANDO...";
+    btn.innerText = "SAVING...";
     btn.disabled = true;
 
     try {
@@ -67,10 +66,10 @@ async function saveCodeToServer() {
             body: JSON.stringify({ path: currentFilePath, content: code })
         });
         const data = await response.json();
-        
-        btn.innerText = "¡GUARDADO!";
+
+        btn.innerText = "SAVED";
         btn.style.backgroundColor = "#4caf50";
-        loadFileList(); 
+        loadFileList();
 
         setTimeout(() => {
             btn.innerText = originalText;
@@ -110,11 +109,11 @@ function openEditor(codeContent, languageClass, filePath = null) {
                 wrap: true
             });
         }
-        
+
         aceEditor.session.setMode(mode);
         aceEditor.setValue(codeContent);
         aceEditor.clearSelection();
-        
+
         setTimeout(() => { aceEditor.resize(); aceEditor.focus(); }, 100);
     }, 10);
 }
@@ -167,7 +166,7 @@ async function simulateAIResponse(userMessage) {
         typingIndicator.style.display = 'none';
         const message = createMessage('', false);
         chatContainer.insertBefore(message, typingIndicator);
-        
+
         const contentDiv = message.querySelector('.message-content');
         let fullText = "";
 
@@ -181,7 +180,7 @@ async function simulateAIResponse(userMessage) {
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
-            buffer = lines.pop(); 
+            buffer = lines.pop();
 
             for (let line of lines) {
                 line = line.trim();
@@ -193,10 +192,8 @@ async function simulateAIResponse(userMessage) {
                             if (parsed.error) fullText += "\n> ERROR: " + parsed.error;
                             else if (parsed.chunk) fullText += parsed.chunk;
 
-                            // RENDER & SANITIZE (Phase 1 Fix)
                             contentDiv.innerHTML = DOMPurify.sanitize(marked.parse(fullText));
 
-                            // Code Blocks Enhancement
                             contentDiv.querySelectorAll('pre code').forEach((block) => {
                                 if (!block.className.includes('language-mermaid')) {
                                     hljs.highlightElement(block);
@@ -218,7 +215,7 @@ async function simulateAIResponse(userMessage) {
         latencyDisplay.innerText = `LATENCY: ${Date.now() - startTime}ms`;
     } catch (error) {
         typingIndicator.style.display = 'none';
-        addMessage('> ERROR DE CONEXIÓN CON EL SERVIDOR', false);
+        addMessage('> CONNECTION ERROR', false);
     }
 }
 
@@ -226,19 +223,18 @@ function handleLocalCommand(cmd) {
     typingIndicator.style.display = 'none';
     if (cmd === '/clear') {
         chatContainer.querySelectorAll('.message').forEach(msg => {
-            if (!msg.querySelector('.message-content').innerHTML.includes('BIENVENIDO')) msg.remove();
+            if (!msg.querySelector('.message-content').innerHTML.includes('WELCOME')) msg.remove();
         });
         fetch('/clear_history', { method: 'POST' });
     } else if (cmd === '/status') {
-        addMessage('> ESTADO: OPERATIVO | RAG: ACTIVO | MODULAR: SI', false);
+        addMessage('> STATUS: OPERATIONAL | RAG: ACTIVE | MODULAR: YES', false);
     }
-    // ... otros comandos
 }
 
 function injectEditorButton(block) {
     const btn = document.createElement('button');
     btn.className = 'code-action-btn';
-    btn.innerText = 'EDITAR ✎';
+    btn.innerText = 'EDIT';
     let langClass = "";
     block.classList.forEach(cls => { if (cls.startsWith('language-')) langClass = cls; });
     btn.onclick = () => openEditor(block.textContent, langClass);
@@ -271,9 +267,9 @@ async function refreshTasks() {
     try {
         const response = await fetch('/tasks');
         const tasks = await response.json();
-        
+
         if (!tasks || tasks.length === 0) {
-            panel.innerHTML = '<div class="no-tasks">> SIN PLAN ACTIVO</div>';
+            panel.innerHTML = '<div class="no-tasks">> NO ACTIVE PLAN</div>';
             return;
         }
 
@@ -294,7 +290,6 @@ async function refreshTasks() {
     }
 }
 
-// Event Listeners
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -303,5 +298,5 @@ messageInput.addEventListener('keydown', (e) => {
 window.onload = () => {
     loadFileList();
     refreshTasks();
-    setInterval(refreshTasks, 5000); // Poll every 5s
+    setInterval(refreshTasks, 5000);
 };
