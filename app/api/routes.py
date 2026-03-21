@@ -57,3 +57,7 @@ def save_file():
     
     result = create_file(path, content)
     return jsonify({"message": result})
+
+@main_bp.route('/tasks', methods=['GET'])
+def get_tasks():
+    return jsonify(get_agent().task_mgr.load())

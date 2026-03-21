@@ -1,7 +1,8 @@
+import os
 import google.generativeai as genai
-from config import GEMINI_API_KEY, MODEL_NAME, CONTEXT_DIR, HISTORY_FILE
+from config import GEMINI_API_KEY, MODEL_NAME, CONTEXT_DIR, HISTORY_FILE, DATA_DIR
 from app.tools import ALL_TOOLS
-from .managers import ContextManager, HistoryManager
+from .managers import ContextManager, HistoryManager, TaskManager
 
 class AIAgent:
     def __init__(self):
@@ -10,6 +11,7 @@ class AIAgent:
         
         self.context_mgr = ContextManager(CONTEXT_DIR)
         self.history_mgr = HistoryManager(HISTORY_FILE)
+        self.task_mgr = TaskManager(os.path.join(DATA_DIR, "tasks.json"))
         
         genai.configure(api_key=GEMINI_API_KEY)
         self.model = genai.GenerativeModel(

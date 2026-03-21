@@ -12,6 +12,46 @@ from .security import is_safe_path
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+@tool
+def plan_tasks(tasks: list) -> str:
+    """Define un plan de sub-tareas para resolver un objetivo complejo.
+    Args:
+        tasks: Lista de strings con las descripciones de las tareas (ej: ["Crear modelo", "Añadir tests"]).
+    """
+    from config import DATA_DIR
+    from app.engine.managers import TaskManager
+    tm = TaskManager(os.path.join(DATA_DIR, "tasks.json"))
+    tm.add_tasks(tasks)
+    return f"Plan de {len(tasks)} tareas registrado exitosamente."
+
+@tool
+def update_task_status(task_id: int, status: str, result: str = "") -> str:
+    """Actualiza el estado de una sub-tarea.
+    Args:
+        task_id: El ID numérico de la tarea.
+        status: El nuevo estado (Pendiente, En Progreso, Completado, Fallido).
+        result: Breve resumen del resultado de la tarea.
+    """
+    from config import DATA_DIR
+    from app.engine.managers import TaskManager
+    tm = TaskManager(os.path.join(DATA_DIR, "tasks.json"))
+    tm.update_task(task_id, status, result)
+    return f"Tarea {task_id} actualizada a {status}."
+
+@tool
+def get_tasks() -> str:
+    """Retorna la lista actual de sub-tareas y su estado."""
+    from config import DATA_DIR
+    from app.engine.managers import TaskManager
+    tm = TaskManager(os.path.join(DATA_DIR, "tasks.json"))
+    tasks = tm.load()
+    if not tasks: return "No hay tareas planeadas actualmente."
+    
+    res = ["### Plan de Trabajo Actual:"]
+    for t in tasks:
+        res.append(f"{t['id']}. [{t['status']}] {t['description']}")
+    return "\n".join(res)
+
 # Herramientas registradas dinámicamente vía @tool
 
 @tool

@@ -25,6 +25,15 @@
             <div class="file-explorer" id="fileExplorer">
                 > CARGANDO...
             </div>
+            
+            <!-- Tasks Panel -->
+            <div class="sidebar-header" style="border-top: 2px solid var(--border-color);">
+                <span>SUB-TAREAS</span>
+                <button onclick="refreshTasks()" class="command-btn" style="padding: 4px 8px;">↻</button>
+            </div>
+            <div class="tasks-panel" id="tasksPanel">
+                <div class="no-tasks">> SIN PLAN ACTIVO</div>
+            </div>
         </div>
 
         <div class="main-container" id="mainContainer">

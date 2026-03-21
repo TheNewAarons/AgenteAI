@@ -266,9 +266,42 @@ function sendMessage() {
     }
 }
 
+async function refreshTasks() {
+    const panel = document.getElementById('tasksPanel');
+    try {
+        const response = await fetch('/tasks');
+        const tasks = await response.json();
+        
+        if (!tasks || tasks.length === 0) {
+            panel.innerHTML = '<div class="no-tasks">> SIN PLAN ACTIVO</div>';
+            return;
+        }
+
+        panel.innerHTML = '';
+        tasks.forEach(t => {
+            const div = document.createElement('div');
+            const statusClass = t.status.toLowerCase().replace(' ', '-');
+            div.className = `task-item status-${statusClass}`;
+            div.innerHTML = `
+                <span class="task-status">${t.status}</span>
+                <span class="task-id">#${t.id}</span>
+                <span class="task-desc">${t.description}</span>
+            `;
+            panel.appendChild(div);
+        });
+    } catch (e) {
+        console.warn("Error refreshing tasks", e);
+    }
+}
+
 // Event Listeners
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
-window.onload = loadFileList;
+
+window.onload = () => {
+    loadFileList();
+    refreshTasks();
+    setInterval(refreshTasks, 5000); // Poll every 5s
+};

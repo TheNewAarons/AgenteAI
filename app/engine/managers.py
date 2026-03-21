@@ -104,3 +104,45 @@ class HistoryManager:
     def clear(self):
         if os.path.exists(self.history_file):
             os.remove(self.history_file)
+
+class TaskManager:
+    """Gestiona el ciclo de vida de las sub-tareas de un objetivo complejo."""
+    def __init__(self, tasks_file: str):
+        self.tasks_file = tasks_file
+
+    def load(self) -> list:
+        if os.path.exists(self.tasks_file):
+            try:
+                with open(self.tasks_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except:
+                pass
+        return []
+
+    def save(self, tasks: list):
+        os.makedirs(os.path.dirname(os.path.abspath(self.tasks_file)), exist_ok=True)
+        with open(self.tasks_file, "w", encoding="utf-8") as f:
+            json.dump(tasks, f, indent=4, ensure_ascii=False)
+
+    def add_tasks(self, task_descriptions: list):
+        tasks = []
+        for i, desc in enumerate(task_descriptions):
+            tasks.append({
+                "id": i + 1,
+                "description": desc,
+                "status": "Pendiente",
+                "result": ""
+            })
+        self.save(tasks)
+        return tasks
+
+    def update_task(self, task_id: int, status: str, result: str = ""):
+        tasks = self.load()
+        for t in tasks:
+            if t["id"] == task_id:
+                t["status"] = status
+                if result:
+                    t["result"] = result
+                break
+        self.save(tasks)
+        return tasks
